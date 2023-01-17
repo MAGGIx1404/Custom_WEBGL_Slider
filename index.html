@@ -11,6 +11,14 @@
 
 <body>
 
+    <!-- loader start -->
+    <div class="loader">
+        <h1 class="loader-text">
+            Loading...
+        </h1>
+    </div>
+    <!-- loader end -->
+
     <!-- slider start -->
     <div class="slider">
         <div class="slider-inner">
@@ -39,28 +47,112 @@
     <!-- slider titles start -->
     <div class="slider-titles">
         <h1 class="slider-title">
-            Title 1
+            NFT#1
         </h1>
         <h1 class="slider-title">
-            Title 2
+            NFT#2
         </h1>
         <h1 class="slider-title">
-            Title 3
+            NFT#3
         </h1>
         <h1 class="slider-title">
-            Title 4
+            NFT#4
         </h1>
         <h1 class="slider-title">
-            Title 5
+            NFT#5
         </h1>
         <h1 class="slider-title">
-            Title 6
+            NFT#6
         </h1>
     </div>
     <!-- slider titles end -->
 
+    <!-- webgl container start -->
+    <canvas class="webgl-canvas"></canvas>
+    <!-- webgl container end -->
+
+    <!-- vertex shader start -->
+    <script id="vertex" type="x-shader/x-vertex">
+        precision highp float;
+        precision highp int;
+        uniform float uTime;
+        uniform sampler2D uTexture;
+        varying vec2 vUv;
+        uniform vec2 uOffset;
+        uniform vec2 uResolution;
+        uniform vec2 uQuadSize;
+        uniform vec4 uCorners;
+        varying vec2 vSize;
+        uniform float uProgress;
+        uniform float uStrength;
+        uniform vec2 uViewportSizes;
+        #define M_PI 3.1415926535897932384626433832795
+        vec3 deformationCurve(vec3 position, vec2 uv, vec2 offset) {
+                position.x = position.x + (sin(uv.y * M_PI) * offset.x );
+                position.y = position.y + (sin(uv.x * M_PI) * offset.y);
+                return position;
+        }
+        void main(){
+        vUv = uv;
+        vec3 newPosition = deformationCurve(position, uv, uOffset);
+        vec4 modelViewPosition = modelViewMatrix * vec4( newPosition, 1.0 );
+        // fisheye
+        modelViewPosition.z += sin(modelViewPosition.y / uViewportSizes.y * M_PI + M_PI / 2.0) * uStrength * 400.;
+        gl_Position = projectionMatrix * modelViewPosition;
+    }
+    </script>
+    <!-- vertex shader end -->
+    <!-- fragment shader start -->
+    <script id="fragment" type="x-shader/x-fragment">
+        uniform float uTime;
+        uniform sampler2D uTexture;
+        uniform float uAlpha;
+        uniform float uParallax;
+        uniform float uZoom;
+        varying vec2 vUv;
+        uniform vec2 uImageSizes;
+        uniform vec2 uPlaneSizes;
+        uniform vec2 uOffset;
+        uniform vec2 uMouse;
+        uniform float uVelo;
+        uniform vec2 uMouseSize;
+        float circle(vec2 uv, vec2 disc_center, float disc_radius, float border_size) {
+                uv -= disc_center;
+                uv*=uMouseSize;
+                float dist = sqrt(dot(uv, uv));
+                return smoothstep(disc_radius+border_size, disc_radius-border_size, dist);
+            }
+            void main(){
+                vec2 ratio = vec2(
+                    min((uPlaneSizes.x / uPlaneSizes.y) / (uImageSizes.x / uImageSizes.y), 1.0),
+                    min((uPlaneSizes.y / uPlaneSizes.x) / (uImageSizes.y / uImageSizes.x), 1.0)
+                );
+                vec2 uv = vec2(
+                    vUv.x * ratio.x + (1.0 - ratio.x) * 0.5,
+                    vUv.y * ratio.y + (1.0 - ratio.y) * 0.5 + uParallax
+                );
+                float hoverWaves = 0.003*sin(-5. * length(uv.xy) + 10. * uTime);
+                vec2 zoomedUv = vec2(
+                    mix(0.5, uv.x, uZoom + hoverWaves),
+                    mix(0.5, uv.y, uZoom + hoverWaves)
+                );
+                vec4 texture = texture2D(uTexture, zoomedUv).rgba;
+                float hover = circle(vUv, uMouse, 0.0, 0.6);
+                float r  = texture2D(uTexture, zoomedUv.xy += hover * (uVelo * 3.55)).x;
+                float g  = texture2D(uTexture, zoomedUv.xy += hover * (uVelo * 3.55)).y;
+                float b  = texture2D(uTexture, zoomedUv.xy += hover * (uVelo * 3.55)).z;
+                vec4 newColor = vec4(r,g,b,1.);
+                gl_FragColor = newColor;
+                gl_FragColor.a *= uAlpha;
+        }
+    </script>
+    <!-- fragment shader end -->
 
     <!-- js files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.148.0/three.min.js"
+        integrity="sha512-TBsRPqWeusJljmmEij9waZ9K+qO2m6W1pu+5h5BjxvdizD1Izn1wwJyVYNFFFH42tIfedURxTsgtXF2Lah2PXA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://unpkg.com/imagesloaded@5/imagesloaded.pkgd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"
         referrerpolicy="no-referrer"></script>
