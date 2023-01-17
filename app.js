@@ -70,7 +70,7 @@ class Slider {
     if (this.isDragging) {
       this.touch.current = e.clientY || e.touches[0].clientY;
       this.scroll.target += this.touch.current - this.touch.start;
-      this.touch.start = this.touch.current;
+      this.touch.start = this.touch.current * 1.2;
     }
   }
 
